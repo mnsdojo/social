@@ -1,0 +1,11 @@
+node_modules
+bun.lockb
+.git
+.gitignore
+*.md
+Dockerfile
+.dockerignore
+.vscode
+.idea
+.DS_Store
+backend/node_modules

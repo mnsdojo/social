@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Universal Video Downloader</title>
+        <style>
+            * {
+                box-sizing: border-box;
+            }
+            body {
+                font-family: system-ui, -apple-system, sans-serif;
+                max-width: 700px;
+                margin: 60px auto;
+                padding: 0 20px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+            }
+            .container {
+                background: white;
+                padding: 40px;
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            }
+            h1 {
+                text-align: center;
+                color: #2d3748;
+                margin-bottom: 10px;
+                font-size: 32px;
+            }
+            .subtitle {
+                text-align: center;
+                color: #718096;
+                margin-bottom: 30px;
+                font-size: 16px;
+            }
+            .platforms {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                justify-content: center;
+                margin-bottom: 30px;
+                padding: 20px;
+                background: #f7fafc;
+                border-radius: 12px;
+            }
+            .platform-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 8px 14px;
+                background: white;
+                border-radius: 20px;
+                font-size: 14px;
+                color: #4a5568;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                transition: transform 0.2s;
+            }
+            .platform-badge:hover {
+                transform: translateY(-2px);
+            }
+            input,
+            select {
+                width: 100%;
+                padding: 14px;
+                font-size: 16px;
+                margin-top: 10px;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                transition: border-color 0.2s;
+            }
+            input:focus,
+            select:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+            .row {
+                margin-top: 16px;
+                text-align: left;
+            }
+            label {
+                font-weight: 600;
+                display: block;
+                margin-bottom: 8px;
+                color: #2d3748;
+            }
+            button {
+                margin-top: 20px;
+                padding: 14px 24px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                transition: transform 0.2s, box-shadow 0.2s;
+                width: 100%;
+            }
+            button:hover:not(:disabled) {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            }
+            button:disabled {
+                background: #cbd5e0;
+                cursor: not-allowed;
+                transform: none;
+            }
+            #error {
+                color: #e53e3e;
+                margin-top: 16px;
+                padding: 12px;
+                background: #fff5f5;
+                border-radius: 8px;
+                border-left: 4px solid #e53e3e;
+                display: none;
+            }
+            .status {
+                margin-top: 16px;
+                padding: 12px;
+                border-radius: 8px;
+                background: #f0fff4;
+                color: #22543d;
+                border-left: 4px solid #48bb78;
+                display: none;
+            }
+            .loading {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                border: 3px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                border-top-color: white;
+                animation: spin 0.6s linear infinite;
+                margin-right: 8px;
+                vertical-align: middle;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                color: #718096;
+                font-size: 14px;
+            }
+            @media (max-width: 640px) {
+                body {
+                    margin: 20px auto;
+                }
+                .container {
+                    padding: 24px;
+                }
+                h1 {
+                    font-size: 24px;
+                }
+                .platforms {
+                    padding: 16px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎬 Universal Video Downloader</h1>
+            <p class="subtitle">Download videos from any social media platform</p>
+
+            <div class="platforms" id="platforms">
+                <span class="platform-badge">Loading platforms...</span>
+            </div>
+
+            <input
+                id="url"
+                type="url"
+                placeholder="Paste video URL here (Twitter, Instagram, YouTube, TikTok, etc.)"
+                autocomplete="off"
+            />
+
+            <div class="row">
+                <label for="quality">Select Quality:</label>
+                <select id="quality">
+                    <option value="best" selected>Best Quality (Video)</option>
+                    <option value="1080">1080p (Full HD)</option>
+                    <option value="720">720p (HD)</option>
+                    <option value="4k">4K (Ultra HD)</option>
+                    <option value="audio">Audio Only (M4A)</option>
+                </select>
+            </div>
+
+            <button id="downloadBtn" onclick="download()" disabled>
+                Download Video
+            </button>
+
+            <p id="error"></p>
+            <div id="status" class="status"></div>
+
+            <div class="footer">
+                Made with ❤️ | Supports 10+ platforms
+            </div>
+        </div>
+
+        <script>
+            const input = document.getElementById("url");
+            const qualitySelect = document.getElementById("quality");
+            const btn = document.getElementById("downloadBtn");
+            const error = document.getElementById("error");
+            const status = document.getElementById("status");
+            const platformsDiv = document.getElementById("platforms");
+
+            // Load supported platforms dynamically
+            fetch("/api/platforms")
+                .then((res) => res.json())
+                .then((platforms) => {
+                    platformsDiv.innerHTML = platforms
+                        .map(
+                            (p) => `
+                        <span class="platform-badge" title="${p.name}">
+                            <span>${p.icon}</span>
+                            <span>${p.name}</span>
+                        </span>
+                    `
+                        )
+                        .join("");
+                })
+                .catch((err) => {
+                    console.error("Failed to load platforms:", err);
+                    platformsDiv.innerHTML =
+                        '<span class="platform-badge">⚠️ Unable to load platforms</span>';
+                });
+
+            // Validate input on change
+            input.addEventListener("input", validate);
+
+            // Allow Enter key to trigger download
+            input.addEventListener("keypress", (e) => {
+                if (e.key === "Enter" && !btn.disabled) {
+                    download();
+                }
+            });
+
+            function validate() {
+                const value = input.value.trim();
+                btn.disabled = !value;
+                error.style.display = "none";
+                status.style.display = "none";
+            }
+
+            function download() {
+                const url = input.value.trim();
+                const quality = qualitySelect.value;
+
+                if (!url) {
+                    showError("Please enter a URL");
+                    return;
+                }
+
+                // Basic URL validation
+                try {
+                    new URL(url);
+                } catch {
+                    showError("Please enter a valid URL");
+                    return;
+                }
+
+                // Show loading state
+                btn.innerHTML = '<span class="loading"></span>Preparing Download...';
+                btn.disabled = true;
+                error.style.display = "none";
+                status.textContent = "⏳ Fetching video from platform...";
+                status.style.display = "block";
+
+                const downloadUrl = `/api/download?url=${encodeURIComponent(url)}&quality=${encodeURIComponent(quality)}`;
+
+                // Create iframe to trigger download (more reliable than window.location)
+                const iframe = document.createElement("iframe");
+                iframe.style.display = "none";
+                iframe.src = downloadUrl;
+                document.body.appendChild(iframe);
+
+                // Check for errors
+                iframe.onload = () => {
+                    // If iframe loads successfully, download started
+                    setTimeout(() => {
+                        btn.innerHTML = "Download Video";
+                        btn.disabled = false;
+                        status.textContent =
+                            "✅ Download started! Check your downloads folder.";
+
+                        setTimeout(() => {
+                            status.style.display = "none";
+                            document.body.removeChild(iframe);
+                        }, 5000);
+                    }, 2000);
+                };
+
+                iframe.onerror = () => {
+                    btn.innerHTML = "Download Video";
+                    btn.disabled = false;
+                    showError("Download failed. Please check the URL and try again.");
+                    document.body.removeChild(iframe);
+                };
+
+                // Fallback timeout
+                setTimeout(() => {
+                    if (document.body.contains(iframe)) {
+                        btn.innerHTML = "Download Video";
+                        btn.disabled = false;
+                        status.textContent =
+                            "✅ Download started! Check your downloads folder.";
+                    }
+                }, 3000);
+            }
+
+            function showError(message) {
+                error.textContent = message;
+                error.style.display = "block";
+                status.style.display = "none";
+            }
+        </script>
+    </body>
+</html>
